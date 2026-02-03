@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Mix Sequencer - Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(180deg, #1a1625 0%, #2d1b3d 50%, #3d2850 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(20, 15, 30, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(156, 136, 255, 0.2) 0%, rgba(219, 112, 147, 0.2) 100%);
+            color: white;
+            padding: 30px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header-left p {
+            opacity: 0.7;
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        .user-badge {
+            background: rgba(198, 255, 135, 0.2);
+            border: 1px solid rgba(198, 255, 135, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #c6ff87;
+        }
+
+        .user-badge.pro {
+            background: linear-gradient(135deg, #c6ff87 0%, #a8e65f 100%);
+            color: #1a1625;
+            border: none;
+        }
+
+        .upgrade-banner {
+            background: linear-gradient(135deg, rgba(198, 255, 135, 0.15) 0%, rgba(168, 230, 95, 0.15) 100%);
+            border: 1px solid rgba(198, 255, 135, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upgrade-banner-text h3 {
+            color: #c6ff87;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+
+        .upgrade-banner-text p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        .usage-info {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .usage-bar {
+            background: rgba(255, 255, 255, 0.1);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .usage-fill {
+            background: linear-gradient(90deg, #c6ff87 0%, #a8e65f 100%);
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .btn-upgrade {
+            background: #c6ff87;
+            color: #1a1625;
+            padding: 12px 30px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .btn-upgrade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(198, 255, 135, 0.4);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            border: 2px dashed rgba(198, 255, 135, 0.5);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(198, 255, 135, 0.05);
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-section:hover {
+            border-color: rgba(198, 255, 135, 0.8);
+            background: rgba(198, 255, 135, 0.1);
+        }
+
+        .upload-section.dragover {
+            border-color: #c6ff87;
+            background: rgba(198, 255, 135, 0.15);
+            transform: scale(1.01);
+        }
+
+        .upload-section.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .upload-section h3 {
+            color: #c6ff87;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-section p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .tracks-list {
+            margin-bottom: 30px;
+        }
+
+        .track-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: move;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .track-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(198, 255, 135, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .track-item.dragging {
+            opacity: 0.5;
+        }
+
+        .drag-handle {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: grab;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .track-number {
+            font-weight: bold;
+            color: #c6ff87;
+            min-width: 35px;
+            font-size: 16px;
+        }
+
+        .track-info {
+            flex: 1;
+        }
+
+        .track-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #ffffff;
+            font-size: 15px;
+        }
+
+        .track-duration {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-play {
+            background: rgba(198, 255, 135, 0.2);
+            color: #c6ff87;
+            border: 1px solid rgba(198, 255, 135, 0.3);
+        }
+
+        .btn-play:hover {
+            background: rgba(198, 255, 135, 0.3);
+            border-color: #c6ff87;
+        }
+
+        .btn-remove {
+            background: rgba(255, 87, 87, 0.2);
+            color: #ff5757;
+            border: 1px solid rgba(255, 87, 87, 0.3);
+        }
+
+        .btn-remove:hover {
+            background: rgba(255, 87, 87, 0.3);
+            border-color: #ff5757;
+        }
+
+        .btn-primary {
+            background: #c6ff87;
+            color: #1a1625;
+            padding: 16px 40px;
+            font-size: 16px;
+            border-radius: 24px;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(198, 255, 135, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .settings {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings h3 {
+            color: #c6ff87;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 18px;
+        }
+
+        .setting-row label {
+            flex: 1;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            flex: 2;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #c6ff87;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(198, 255, 135, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #c6ff87;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(198, 255, 135, 0.4);
+        }
+
+        input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #c6ff87;
+        }
+
+        .value-display {
+            min-width: 50px;
+            text-align: right;
+            color: #c6ff87;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .progress-container {
+            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-container h3 {
+            margin-bottom: 15px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #c6ff87 0%, #a8e65f 100%);
+            transition: width 0.3s;
+            width: 0%;
+            box-shadow: 0 0 10px rgba(198, 255, 135, 0.5);
+        }
+
+        .progress-container p {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .export-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 40px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            opacity: 0.6;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(20, 15, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            color: #c6ff87;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(198, 255, 135, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .price {
+            font-size: 48px;
+            font-weight: 700;
+            color: #c6ff87;
+            margin: 20px 0;
+        }
+
+        .price span {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .features {
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .feature {
+            padding: 10px 0;
+            color: rgba(255, 255, 255, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feature:last-child {
+            border-bottom: none;
+        }
+
+        .feature::before {
+            content: "✓ ";
+            color: #c6ff87;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 14px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>🎵 Audio Mix Sequencer</h1>
+                <p>Upload, arrange, and export your audio tracks into a single mix</p>
+            </div>
+            <div class="user-badge" id="userBadge">Free Plan</div>
+        </div>
+
+        <div class="content">
+            <div class="upgrade-banner" id="upgradeBanner">
+                <div class="upgrade-banner-text">
+                    <h3>Upgrade to Pro</h3>
+                    <p>Unlimited mixes, unlimited tracks, no restrictions</p>
+                    <div class="usage-info" id="usageInfo">
+                        Mixes this month: <span id="mixCount">0</span>/3
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-fill" id="usageFill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <button class="btn-upgrade" id="upgradeBtn">Go Pro - $9.99/mo</button>
+            </div>
+
+            <div class="upload-section" id="dropZone">
+                <div class="upload-icon">📁</div>
+                <h3>Upload Audio Files</h3>
+                <p id="uploadText">Click to browse or drag and drop MP3/WAV files</p>
+                <input type="file" id="fileInput" accept="audio/mp3,audio/wav,audio/mpeg" multiple>
+            </div>
+
+            <div class="tracks-list" id="tracksList"></div>
+
+            <div class="settings" id="settingsPanel" style="display: none;">
+                <h3>Export Settings</h3>
+                <div class="setting-row">
+                    <label for="crossfadeToggle">Enable Crossfade</label>
+                    <input type="checkbox" id="crossfadeToggle">
+                </div>
+                <div class="setting-row" id="crossfadeSliderRow" style="display: none;">
+                    <label for="crossfadeDuration">Crossfade Duration</label>
+                    <input type="range" id="crossfadeDuration" min="0" max="10" step="0.5" value="3">
+                    <span class="value-display" id="crossfadeValue">3.0s</span>
+                </div>
+                <div class="setting-row">
+                    <label for="exportTimecodes">Export Timecodes (.txt)</label>
+                    <input type="checkbox" id="exportTimecodes" checked>
+                </div>
+            </div>
+
+            <div class="export-section" id="exportSection" style="display: none;">
+                <button class="btn btn-primary" id="exportBtn">
+                    🎧 Export Mix
+                </button>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <h3>Processing your mix...</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="progressText">0%</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upgrade Modal -->
+    <div class="modal" id="upgradeModal">
+        <div class="modal-content">
+            <h2>Upgrade to Pro</h2>
+            <div class="pricing-card">
+                <div class="price">$9.99<span>/month</span></div>
+                <div class="features">
+                    <div class="feature">Unlimited mixes per month</div>
+                    <div class="feature">Unlimited tracks per mix</div>
+                    <div class="feature">High-quality exports</div>
+                    <div class="feature">Priority support</div>
+                    <div class="feature">Cancel anytime</div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" id="closeModal">Maybe Later</button>
+                <button class="btn-upgrade" id="checkoutBtn">Subscribe Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    
+    <script>
+        // ========== STRIPE CONFIGURATION ==========
+        // Replace with your actual Stripe publishable key
+        const pk_test_51Swt3QEjDTFmlwdCbfQcD0F8sVz7bhzVjJF5YZ1IvsM1PwtmUcqTGcpI55jM3zUHOkyf8da6Ok3F0vXbR7yObNNP00oaG83Q0J = 'pk_test_YOUR_KEY_HERE'; // Get from Stripe Dashboard
+        const price_1Swt68EjDTFmlwdCCLVm9nXO = 'price_YOUR_PRICE_ID'; // Get from Stripe Dashboard
+        
+        // Initialize Stripe
+        const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+
+        // ========== USER STATE ==========
+        let userPlan = 'free'; // In production, get from backend/database
+        let mixesThisMonth = 0; // In production, get from backend/database
+        const FREE_MIX_LIMIT = 3;
+        const FREE_TRACK_LIMIT = 5;
+
+        // ========== AUDIO SEQUENCER CODE ==========
+        let tracks = [];
+        let audioContext;
+        let currentlyPlaying = null;
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const tracksList = document.getElementById('tracksList');
+        const exportBtn = document.getElementById('exportBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const crossfadeToggle = document.getElementById('crossfadeToggle');
+        const crossfadeDuration = document.getElementById('crossfadeDuration');
+        const crossfadeValue = document.getElementById('crossfadeValue');
+        const crossfadeSliderRow = document.getElementById('crossfadeSliderRow');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const exportSection = document.getElementById('exportSection');
+        const exportTimecodes = document.getElementById('exportTimecodes');
+        const upgradeBtn = document.getElementById('upgradeBtn');
+        const upgradeModal = document.getElementById('upgradeModal');
+        const closeModal = document.getElementById('closeModal');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const userBadge = document.getElementById('userBadge');
+        const upgradeBanner = document.getElementById('upgradeBanner');
+        const mixCount = document.getElementById('mixCount');
+        const usageFill = document.getElementById('usageFill');
+        const uploadText = document.getElementById('uploadText');
+
+        // Initialize AudioContext
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Update UI based on user plan
+        function updateUIForPlan() {
+            if (userPlan === 'pro') {
+                userBadge.textContent = '⭐ Pro';
+                userBadge.classList.add('pro');
+                upgradeBanner.style.display = 'none';
+            } else {
+                userBadge.textContent = 'Free Plan';
+                userBadge.classList.remove('pro');
+                upgradeBanner.style.display = 'flex';
+                updateUsageDisplay();
+            }
+        }
+
+        function updateUsageDisplay() {
+            mixCount.textContent = mixesThisMonth;
+            const percentage = (mixesThisMonth / FREE_MIX_LIMIT) * 100;
+            usageFill.style.width = percentage + '%';
+        }
+
+        function canCreateMix() {
+            return userPlan === 'pro' || mixesThisMonth < FREE_MIX_LIMIT;
+        }
+
+        function canAddTracks() {
+            return userPlan === 'pro' || tracks.length < FREE_TRACK_LIMIT;
+        }
+
+        // ========== STRIPE CHECKOUT ==========
+        upgradeBtn.addEventListener('click', () => {
+            upgradeModal.classList.add('active');
+        });
+
+        closeModal.addEventListener('click', () => {
+            upgradeModal.classList.remove('active');
+        });
+
+        checkoutBtn.addEventListener('click', async () => {
+            try {
+                // This redirects to Stripe Checkout
+                // In production, you'd call your backend to create a checkout session
+                const { error } = await stripe.redirectToCheckout({
+                    lineItems: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+                    mode: 'subscription',
+                    successUrl: window.location.origin + '/success.html?session_id={CHECKOUT_SESSION_ID}',
+                    cancelUrl: window.location.origin,
+                });
+
+                if (error) {
+                    console.error('Stripe error:', error);
+                    alert('Payment failed. Please try again.');
+                }
+            } catch (err) {
+                console.error('Checkout error:', err);
+                alert('Something went wrong. Please try again.');
+            }
+        });
+
+        // ========== CROSSFADE SETTINGS ==========
+        crossfadeToggle.addEventListener('change', () => {
+            crossfadeSliderRow.style.display = crossfadeToggle.checked ? 'flex' : 'none';
+        });
+
+        crossfadeDuration.addEventListener('input', () => {
+            crossfadeValue.textContent = crossfadeDuration.value + 's';
+        });
+
+        // ========== FILE UPLOAD ==========
+        dropZone.addEventListener('click', () => {
+            if (canAddTracks() || tracks.length === 0) {
+                fileInput.click();
+            } else {
+                upgradeModal.classList.add('active');
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (canAddTracks() || tracks.length === 0) {
+                handleFiles(e.dataTransfer.files);
+            } else {
+                upgradeModal.classList.add('active');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            initAudioContext();
+            
+            for (let file of files) {
+                if (!canAddTracks() && tracks.length > 0) {
+                    alert(`Free plan limited to ${FREE_TRACK_LIMIT} tracks. Upgrade to Pro for unlimited tracks!`);
+                    upgradeModal.classList.add('active');
+                    break;
+                }
+
+                if (file.type.startsWith('audio/')) {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    
+                    tracks.push({
+                        id: Date.now() + Math.random(),
+                        name: file.name,
+                        file: file,
+                        audioBuffer: audioBuffer,
+                        duration: audioBuffer.duration
+                    });
+                }
+            }
+
+            renderTracks();
+            updateExportButton();
+            updateUploadSectionState();
+        }
+
+        function updateUploadSectionState() {
+            if (!canAddTracks() && tracks.length > 0) {
+                dropZone.classList.add('disabled');
+                uploadText.textContent = `Free plan limited to ${FREE_TRACK_LIMIT} tracks. Upgrade to add more!`;
+            } else {
+                dropZone.classList.remove('disabled');
+                uploadText.textContent = 'Click to browse or drag and drop MP3/WAV files';
+            }
+        }
+
+        function renderTracks() {
+            if (tracks.length === 0) {
+                tracksList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎵</div>
+                        <p>No tracks added yet. Upload some audio files to get started!</p>
+                    </div>
+                `;
+                settingsPanel.style.display = 'none';
+                exportSection.style.display = 'none';
+                return;
+            }
+
+            settingsPanel.style.display = 'block';
+            exportSection.style.display = 'block';
+
+            tracksList.innerHTML = tracks.map((track, index) => `
+                <div class="track-item" draggable="true" data-id="${track.id}">
+                    <div class="drag-handle">⋮⋮</div>
+                    <div class="track-number">#${index + 1}</div>
+                    <div class="track-info">
+                        <div class="track-name">${track.name}</div>
+                        <div class="track-duration">${formatDuration(track.duration)}</div>
+                    </div>
+                    <div class="track-controls">
+                        <button class="btn btn-play" id="play-btn-${index}" onclick="togglePlayTrack(${index})">▶ Play</button>
+                        <button class="btn btn-remove" onclick="removeTrack(${index})">✕</button>
+                    </div>
+                </div>
+            `).join('');
+
+            setupDragAndDrop();
+        }
+
+        function setupDragAndDrop() {
+            const items = document.querySelectorAll('.track-item');
+            let draggedElement = null;
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedElement = item;
+                    item.classList.add('dragging');
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(tracksList, e.clientY);
+                    if (afterElement == null) {
+                        tracksList.appendChild(draggedElement);
+                    } else {
+                        tracksList.insertBefore(draggedElement, afterElement);
+                    }
+                });
+            });
+
+            tracksList.addEventListener('drop', () => {
+                updateTrackOrder();
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.track-item:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateTrackOrder() {
+            const items = document.querySelectorAll('.track-item');
+            const newOrder = [];
+            
+            items.forEach(item => {
+                const id = parseFloat(item.dataset.id);
+                const track = tracks.find(t => t.id === id);
+                if (track) newOrder.push(track);
+            });
+
+            tracks = newOrder;
+            renderTracks();
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function togglePlayTrack(index) {
+            const button = document.getElementById(`play-btn-${index}`);
+            
+            if (currentlyPlaying && currentlyPlaying.index === index) {
+                currentlyPlaying.source.stop();
+                currentlyPlaying = null;
+                button.textContent = '▶ Play';
+                button.classList.remove('btn-remove');
+                button.classList.add('btn-play');
+            } else {
+                if (currentlyPlaying) {
+                    const oldButton = document.getElementById(`play-btn-${currentlyPlaying.index}`);
+                    if (oldButton) {
+                        oldButton.textContent = '▶ Play';
+                        oldButton.classList.remove('btn-remove');
+                        oldButton.classList.add('btn-play');
+                    }
+                    currentlyPlaying.source.stop();
+                }
+
+                initAudioContext();
+                const track = tracks[index];
+                const source = audioContext.createBufferSource();
+                source.buffer = track.audioBuffer;
+                source.connect(audioContext.destination);
+                source.start();
+                
+                currentlyPlaying = { source, index };
+                button.textContent = '⬛ Stop';
+                button.classList.remove('btn-play');
+                button.classList.add('btn-remove');
+
+                source.onended = () => {
+                    if (currentlyPlaying && currentlyPlaying.index === index) {
+                        currentlyPlaying = null;
+                        button.textContent = '▶ Play';
+                        button.classList.remove('btn-remove');
+                        button.classList.add('btn-play');
+                    }
+                };
+            }
+        }
+
+        function removeTrack(index) {
+            tracks.splice(index, 1);
+            renderTracks();
+            updateExportButton();
+            updateUploadSectionState();
+        }
+
+        function updateExportButton() {
+            exportBtn.disabled = tracks.length === 0;
+        }
+
+        exportBtn.addEventListener('click', async () => {
+            if (tracks.length === 0) return;
+
+            if (!canCreateMix()) {
+                alert(`Free plan limited to ${FREE_MIX_LIMIT} mixes per month. Upgrade to Pro for unlimited mixes!`);
+                upgradeModal.classList.add('active');
+                return;
+            }
+
+            exportBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            
+            try {
+                const useCrossfade = crossfadeToggle.checked;
+                const fadeTime = parseFloat(crossfadeDuration.value);
+                const includeTimecodes = exportTimecodes.checked;
+                
+                await exportMix(useCrossfade, fadeTime, includeTimecodes);
+                
+                // Increment mix count (in production, update backend)
+                mixesThisMonth++;
+                updateUsageDisplay();
+            } catch (error) {
+                alert('Error creating mix: ' + error.message);
+                console.error(error);
+            }
+
+            exportBtn.disabled = false;
+            progressContainer.style.display = 'none';
+            updateProgress(0);
+        });
+
+        async function exportMix(useCrossfade, fadeTime, includeTimecodes) {
+            initAudioContext();
+
+            const timecodes = [];
+            let currentTime = 0;
+
+            for (let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+                timecodes.push({
+                    time: currentTime,
+                    name: track.name.replace(/\.[^/.]+$/, '')
+                });
+
+                if (useCrossfade && i < tracks.length - 1) {
+                    currentTime += track.duration - fadeTime;
+                } else {
+                    currentTime += track.duration;
+                }
+            }
+
+            let totalDuration = currentTime;
+            if (useCrossfade && tracks.length > 1) {
+                totalDuration = tracks.reduce((sum, track) => sum + track.duration, 0);
+                totalDuration -= (fadeTime * (tracks.length - 1));
+            } else {
+                totalDuration = tracks.reduce((sum, track) => sum + track.duration, 0);
+            }
+
+            const sampleRate = tracks[0].audioBuffer.sampleRate;
+            const numberOfChannels = Math.max(...tracks.map(t => t.audioBuffer.numberOfChannels));
+            
+            const outputBuffer = audioContext.createBuffer(
+                numberOfChannels,
+                Math.ceil(totalDuration * sampleRate),
+                sampleRate
+            );
+
+            let currentPosition = 0;
+
+            for (let i = 0; i < tracks.length; i++) {
+                updateProgress((i / tracks.length) * 80);
+                
+                const track = tracks[i];
+                const trackBuffer = track.audioBuffer;
+                
+                for (let channel = 0; channel < numberOfChannels; channel++) {
+                    const outputData = outputBuffer.getChannelData(channel);
+                    const trackData = trackBuffer.getChannelData(Math.min(channel, trackBuffer.numberOfChannels - 1));
+                    
+                    for (let sample = 0; sample < trackData.length; sample++) {
+                        const outputIndex = currentPosition + sample;
+                        if (outputIndex >= outputData.length) break;
+                        
+                        let value = trackData[sample];
+                        
+                        if (useCrossfade) {
+                            const fadeSamples = fadeTime * sampleRate;
+                            
+                            if (i < tracks.length - 1 && sample >= trackData.length - fadeSamples) {
+                                const fadePosition = (trackData.length - sample) / fadeSamples;
+                                value *= fadePosition;
+                            }
+                            
+                            if (i > 0 && sample < fadeSamples) {
+                                const fadePosition = sample / fadeSamples;
+                                value *= fadePosition;
+                            }
+                        }
+                        
+                        outputData[outputIndex] = outputData[outputIndex] ? 
+                            (outputData[outputIndex] + value) / 2 : value;
+                    }
+                }
+                
+                if (useCrossfade && i < tracks.length - 1) {
+                    currentPosition += trackBuffer.length - (fadeTime * sampleRate);
+                } else {
+                    currentPosition += trackBuffer.length;
+                }
+            }
+
+            updateProgress(90);
+
+            const wav = bufferToWave(outputBuffer);
+            const blob = new Blob([wav], { type: 'audio/wav' });
+            
+            updateProgress(95);
+
+            const timestamp = Date.now();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mix_' + timestamp + '.wav';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            if (includeTimecodes) {
+                const timecodeText = timecodes.map(tc => {
+                    return `${formatTimecode(tc.time)} ${tc.name}`;
+                }).join('\n');
+
+                const textBlob = new Blob([timecodeText], { type: 'text/plain' });
+                const textUrl = URL.createObjectURL(textBlob);
+                const textLink = document.createElement('a');
+                textLink.href = textUrl;
+                textLink.download = 'mix_' + timestamp + '_timecodes.txt';
+                textLink.click();
+                URL.revokeObjectURL(textUrl);
+            }
+
+            updateProgress(100);
+        }
+
+        function formatTimecode(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function updateProgress(percent) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = Math.round(percent) + '%';
+        }
+
+        function bufferToWave(audioBuffer) {
+            const numOfChan = audioBuffer.numberOfChannels;
+            const length = audioBuffer.length * numOfChan * 2 + 44;
+            const buffer = new ArrayBuffer(length);
+            const view = new DataView(buffer);
+            const channels = [];
+            let offset = 0;
+            let pos = 0;
+
+            setUint32(0x46464952);
+            setUint32(length - 8);
+            setUint32(0x45564157);
+
+            setUint32(0x20746d66);
+            setUint32(16);
+            setUint16(1);
+            setUint16(numOfChan);
+            setUint32(audioBuffer.sampleRate);
+            setUint32(audioBuffer.sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2);
+            setUint16(16);
+
+            setUint32(0x61746164);
+            setUint32(length - pos - 4);
+
+            for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+                channels.push(audioBuffer.getChannelData(i));
+            }
+
+            while (pos < length - 44) {
+                for (let i = 0; i < numOfChan; i++) {
+                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+
+            return buffer;
+
+            function setUint16(data) {
+                view.setUint16(pos, data, true);
+                pos += 2;
+            }
+
+            function setUint32(data) {
+                view.setUint32(pos, data, true);
+                pos += 4;
+            }
+        }
+
+        // Initialize
+        updateExportButton();
+        updateUIForPlan();
+    </script>
+</body>
+</html>
