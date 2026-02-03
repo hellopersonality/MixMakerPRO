@@ -623,11 +623,20 @@
     <script>
         // ========== STRIPE CONFIGURATION ==========
         // Replace with your actual Stripe publishable key
-        const pk_test_51Swt3QEjDTFmlwdCbfQcD0F8sVz7bhzVjJF5YZ1IvsM1PwtmUcqTGcpI55jM3zUHOkyf8da6Ok3F0vXbR7yObNNP00oaG83Q0J = 'pk_test_YOUR_KEY_HERE'; // Get from Stripe Dashboard
-        const price_1Swt68EjDTFmlwdCCLVm9nXO = 'price_YOUR_PRICE_ID'; // Get from Stripe Dashboard
+        const STRIPE_PUBLISHABLE_KEY = 'pk_test_YOUR_KEY_HERE'; // Get from Stripe Dashboard
+        const STRIPE_PRICE_ID = 'price_YOUR_PRICE_ID'; // Get from Stripe Dashboard
         
-        // Initialize Stripe
-        const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+        // Initialize Stripe (with error handling)
+        let stripe = null;
+        try {
+            if (typeof Stripe !== 'undefined' && STRIPE_PUBLISHABLE_KEY !== 'pk_test_YOUR_KEY_HERE') {
+                stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+            } else {
+                console.warn('Stripe not configured. Payment features disabled.');
+            }
+        } catch (error) {
+            console.error('Stripe initialization error:', error);
+        }
 
         // ========== USER STATE ==========
         let userPlan = 'free'; // In production, get from backend/database
@@ -709,14 +718,24 @@
         });
 
         checkoutBtn.addEventListener('click', async () => {
+            if (!stripe) {
+                alert('Payment system not configured. Please add your Stripe keys to enable payments.');
+                return;
+            }
+
+            if (STRIPE_PRICE_ID === 'price_YOUR_PRICE_ID') {
+                alert('Please configure your Stripe Price ID in the code to enable payments.');
+                return;
+            }
+
             try {
                 // This redirects to Stripe Checkout
                 // In production, you'd call your backend to create a checkout session
                 const { error } = await stripe.redirectToCheckout({
                     lineItems: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
                     mode: 'subscription',
-                    successUrl: window.location.origin + '/success.html?session_id={CHECKOUT_SESSION_ID}',
-                    cancelUrl: window.location.origin,
+                    successUrl: window.location.origin + '/MixMakerPRO/success.html?session_id={CHECKOUT_SESSION_ID}',
+                    cancelUrl: window.location.origin + '/MixMakerPRO/',
                 });
 
                 if (error) {
@@ -739,25 +758,34 @@
         });
 
         // ========== FILE UPLOAD ==========
-        dropZone.addEventListener('click', () => {
+        dropZone.addEventListener('click', (e) => {
+            console.log('Drop zone clicked');
+            e.preventDefault();
             if (canAddTracks() || tracks.length === 0) {
+                console.log('Opening file dialog');
                 fileInput.click();
             } else {
+                console.log('Showing upgrade modal');
                 upgradeModal.classList.add('active');
             }
         });
 
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.add('dragover');
         });
 
-        dropZone.addEventListener('dragleave', () => {
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.remove('dragover');
         });
 
         dropZone.addEventListener('drop', (e) => {
+            console.log('Files dropped');
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.remove('dragover');
             if (canAddTracks() || tracks.length === 0) {
                 handleFiles(e.dataTransfer.files);
@@ -767,13 +795,16 @@
         });
 
         fileInput.addEventListener('change', (e) => {
+            console.log('File input changed', e.target.files);
             handleFiles(e.target.files);
         });
 
         async function handleFiles(files) {
+            console.log('handleFiles called with', files.length, 'files');
             initAudioContext();
             
             for (let file of files) {
+                console.log('Processing file:', file.name, file.type);
                 if (!canAddTracks() && tracks.length > 0) {
                     alert(`Free plan limited to ${FREE_TRACK_LIMIT} tracks. Upgrade to Pro for unlimited tracks!`);
                     upgradeModal.classList.add('active');
@@ -781,16 +812,25 @@
                 }
 
                 if (file.type.startsWith('audio/')) {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                    
-                    tracks.push({
-                        id: Date.now() + Math.random(),
-                        name: file.name,
-                        file: file,
-                        audioBuffer: audioBuffer,
-                        duration: audioBuffer.duration
-                    });
+                    try {
+                        console.log('Decoding audio file:', file.name);
+                        const arrayBuffer = await file.arrayBuffer();
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        
+                        tracks.push({
+                            id: Date.now() + Math.random(),
+                            name: file.name,
+                            file: file,
+                            audioBuffer: audioBuffer,
+                            duration: audioBuffer.duration
+                        });
+                        console.log('Track added successfully');
+                    } catch (error) {
+                        console.error('Error processing audio file:', error);
+                        alert('Error loading audio file: ' + file.name);
+                    }
+                } else {
+                    console.warn('File is not audio:', file.type);
                 }
             }
 
