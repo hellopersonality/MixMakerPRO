@@ -141,6 +141,7 @@
             margin-bottom: 30px;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
         }
 
         .upload-section:hover {
@@ -558,7 +559,17 @@
                 <div class="upload-icon">📁</div>
                 <h3>Upload Audio Files</h3>
                 <p id="uploadText">Click to browse or drag and drop MP3/WAV files</p>
-                <input type="file" id="fileInput" accept="audio/mp3,audio/wav,audio/mpeg" multiple>
+                <input type="file" id="fileInput" accept="audio/mp3,audio/wav,audio/mpeg,audio/*" multiple>
+                <button type="button" id="browseBtn" style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    opacity: 0;
+                    cursor: pointer;
+                    z-index: 10;
+                ">Browse</button>
             </div>
 
             <div class="tracks-list" id="tracksList"></div>
@@ -758,15 +769,26 @@
         });
 
         // ========== FILE UPLOAD ==========
-        dropZone.addEventListener('click', (e) => {
-            console.log('Drop zone clicked');
+        const browseBtn = document.getElementById('browseBtn');
+        
+        browseBtn.addEventListener('click', (e) => {
+            console.log('Browse button clicked');
             e.preventDefault();
+            e.stopPropagation();
             if (canAddTracks() || tracks.length === 0) {
                 console.log('Opening file dialog');
                 fileInput.click();
             } else {
                 console.log('Showing upgrade modal');
                 upgradeModal.classList.add('active');
+            }
+        });
+
+        dropZone.addEventListener('click', (e) => {
+            console.log('Drop zone clicked (via element)');
+            // The button should handle this, but as fallback
+            if (e.target !== browseBtn && (canAddTracks() || tracks.length === 0)) {
+                fileInput.click();
             }
         });
 
