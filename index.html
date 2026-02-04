@@ -39,6 +39,46 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .debug-toggle {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid rgba(255, 165, 0, 0.4);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffb347;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .debug-toggle:hover {
+            background: rgba(255, 165, 0, 0.3);
+            border-color: rgba(255, 165, 0, 0.6);
+        }
+
+        .debug-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #ffb347;
+        }
+
+        .debug-toggle.active {
+            background: rgba(255, 165, 0, 0.4);
+            border-color: #ffb347;
         }
 
         .header-left h1 {
@@ -623,7 +663,13 @@
                 <h1>🎵 Mix Maker PRO</h1>
                 <p>Upload, arrange, and export your audio tracks into a single mix</p>
             </div>
-            <div class="user-badge" id="userBadge">Free Plan</div>
+            <div class="header-controls">
+                <label class="debug-toggle" id="debugToggleLabel">
+                    <input type="checkbox" id="debugMode">
+                    <span>🔧 Debug Mode</span>
+                </label>
+                <div class="user-badge" id="userBadge">Free Plan</div>
+            </div>
         </div>
 
         <div class="content">
@@ -740,7 +786,7 @@
         // Initialize Stripe (with error handling)
         let stripe = null;
         try {
-            if (typeof Stripe !== 'undefined' && STRIPE_PUBLISHABLE_KEY !== 'prod_TuiXamN8UxeL6y') {
+            if (typeof Stripe !== 'undefined' && STRIPE_PUBLISHABLE_KEY !== 'pk_test_YOUR_KEY_HERE') {
                 stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
             } else {
                 console.warn('Stripe not configured. Payment features disabled.');
@@ -754,6 +800,7 @@
         let mixesThisMonth = 0; // In production, get from backend/database
         const FREE_MIX_LIMIT = 3;
         const FREE_TRACK_LIMIT = 5;
+        let debugMode = false; // Toggle to bypass all limitations
 
         // ========== AUDIO SEQUENCER CODE ==========
         let tracks = [];
@@ -785,6 +832,10 @@
         const usageFill = document.getElementById('usageFill');
         const uploadText = document.getElementById('uploadText');
         
+        // Debug mode elements
+        const debugModeCheckbox = document.getElementById('debugMode');
+        const debugToggleLabel = document.getElementById('debugToggleLabel');
+        
         // Timecode modal elements
         const timecodeModal = document.getElementById('timecodeModal');
         const timecodeDisplay = document.getElementById('timecodeDisplay');
@@ -801,13 +852,26 @@
 
         // Update UI based on user plan
         function updateUIForPlan() {
-            if (userPlan === 'pro') {
+            if (debugMode) {
+                userBadge.textContent = '🔧 Debug';
+                userBadge.classList.remove('pro');
+                userBadge.style.background = 'rgba(255, 165, 0, 0.3)';
+                userBadge.style.border = '1px solid rgba(255, 165, 0, 0.5)';
+                userBadge.style.color = '#ffb347';
+                upgradeBanner.style.display = 'none';
+            } else if (userPlan === 'pro') {
                 userBadge.textContent = '⭐ Pro';
                 userBadge.classList.add('pro');
+                userBadge.style.background = '';
+                userBadge.style.border = '';
+                userBadge.style.color = '';
                 upgradeBanner.style.display = 'none';
             } else {
                 userBadge.textContent = 'Free Plan';
                 userBadge.classList.remove('pro');
+                userBadge.style.background = '';
+                userBadge.style.border = '';
+                userBadge.style.color = '';
                 upgradeBanner.style.display = 'flex';
                 updateUsageDisplay();
             }
@@ -820,10 +884,12 @@
         }
 
         function canCreateMix() {
+            if (debugMode) return true;
             return userPlan === 'pro' || mixesThisMonth < FREE_MIX_LIMIT;
         }
 
         function canAddTracks() {
+            if (debugMode) return true;
             return userPlan === 'pro' || tracks.length < FREE_TRACK_LIMIT;
         }
 
@@ -870,6 +936,20 @@
         // ========== TIMECODE MODAL HANDLERS ==========
         closeTimecodeModal.addEventListener('click', () => {
             timecodeModal.classList.remove('active');
+        });
+
+        // ========== DEBUG MODE TOGGLE ==========
+        debugModeCheckbox.addEventListener('change', () => {
+            debugMode = debugModeCheckbox.checked;
+            if (debugMode) {
+                debugToggleLabel.classList.add('active');
+                console.log('🔧 Debug Mode: ON - All limitations disabled');
+            } else {
+                debugToggleLabel.classList.remove('active');
+                console.log('🔧 Debug Mode: OFF - Limitations active');
+            }
+            updateUIForPlan();
+            updateUploadSectionState();
         });
 
         copyTimecodes.addEventListener('click', async () => {
