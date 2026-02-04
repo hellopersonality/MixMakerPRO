@@ -528,6 +528,92 @@
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.15);
         }
+
+        /* Timecode Modal Styles */
+        .timecode-modal-content {
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .timecode-modal-content h2 {
+            margin-bottom: 10px;
+        }
+
+        .timecode-modal-content p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .timecode-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #c6ff87;
+            text-align: left;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 400px;
+            line-height: 1.6;
+        }
+
+        .timecode-display::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .timecode-display::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .timecode-display::-webkit-scrollbar-thumb {
+            background: rgba(198, 255, 135, 0.3);
+            border-radius: 4px;
+        }
+
+        .timecode-display::-webkit-scrollbar-thumb:hover {
+            background: rgba(198, 255, 135, 0.5);
+        }
+
+        .timecode-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .timecode-buttons button {
+            flex: 1;
+        }
+
+        .btn-copy {
+            background: rgba(198, 255, 135, 0.2);
+            color: #c6ff87;
+            border: 1px solid rgba(198, 255, 135, 0.3);
+        }
+
+        .btn-copy:hover {
+            background: rgba(198, 255, 135, 0.3);
+        }
+
+        .btn-copy.copied {
+            background: rgba(198, 255, 135, 0.4);
+        }
+
+        .btn-download-txt {
+            background: #c6ff87;
+            color: #1a1625;
+        }
+
+        .btn-download-txt:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(198, 255, 135, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -586,7 +672,7 @@
                     <span class="value-display" id="crossfadeValue">3.0s</span>
                 </div>
                 <div class="setting-row">
-                    <label for="exportTimecodes">Export Timecodes (.txt)</label>
+                    <label for="exportTimecodes">Show Timecodes After Export</label>
                     <input type="checkbox" id="exportTimecodes" checked>
                 </div>
             </div>
@@ -628,6 +714,20 @@
         </div>
     </div>
 
+    <!-- Timecode Modal -->
+    <div class="modal" id="timecodeModal">
+        <div class="modal-content timecode-modal-content">
+            <h2>🎵 Mix Timecodes</h2>
+            <p>Your mix has been exported! Here are the timecodes for each track:</p>
+            <div class="timecode-display" id="timecodeDisplay"></div>
+            <div class="timecode-buttons">
+                <button class="btn btn-secondary btn-copy" id="copyTimecodes">📋 Copy to Clipboard</button>
+                <button class="btn btn-secondary btn-download-txt" id="downloadTimecodes">💾 Download as .txt</button>
+                <button class="btn btn-secondary" id="closeTimecodeModal">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Load Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
     
@@ -640,7 +740,7 @@
         // Initialize Stripe (with error handling)
         let stripe = null;
         try {
-            if (typeof Stripe !== 'undefined' && STRIPE_PUBLISHABLE_KEY !== 'pk_test_YOUR_KEY_HERE') {
+            if (typeof Stripe !== 'undefined' && STRIPE_PUBLISHABLE_KEY !== 'prod_TuiXamN8UxeL6y') {
                 stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
             } else {
                 console.warn('Stripe not configured. Payment features disabled.');
@@ -659,6 +759,7 @@
         let tracks = [];
         let audioContext;
         let currentlyPlaying = null;
+        let currentTimecodeText = '';
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -683,6 +784,13 @@
         const mixCount = document.getElementById('mixCount');
         const usageFill = document.getElementById('usageFill');
         const uploadText = document.getElementById('uploadText');
+        
+        // Timecode modal elements
+        const timecodeModal = document.getElementById('timecodeModal');
+        const timecodeDisplay = document.getElementById('timecodeDisplay');
+        const copyTimecodes = document.getElementById('copyTimecodes');
+        const downloadTimecodes = document.getElementById('downloadTimecodes');
+        const closeTimecodeModal = document.getElementById('closeTimecodeModal');
 
         // Initialize AudioContext
         function initAudioContext() {
@@ -757,6 +865,39 @@
                 console.error('Checkout error:', err);
                 alert('Something went wrong. Please try again.');
             }
+        });
+
+        // ========== TIMECODE MODAL HANDLERS ==========
+        closeTimecodeModal.addEventListener('click', () => {
+            timecodeModal.classList.remove('active');
+        });
+
+        copyTimecodes.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(currentTimecodeText);
+                const originalText = copyTimecodes.textContent;
+                copyTimecodes.textContent = '✓ Copied!';
+                copyTimecodes.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyTimecodes.textContent = originalText;
+                    copyTimecodes.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard. Please select and copy manually.');
+            }
+        });
+
+        downloadTimecodes.addEventListener('click', () => {
+            const timestamp = Date.now();
+            const textBlob = new Blob([currentTimecodeText], { type: 'text/plain' });
+            const textUrl = URL.createObjectURL(textBlob);
+            const textLink = document.createElement('a');
+            textLink.href = textUrl;
+            textLink.download = 'mix_' + timestamp + '_timecodes.txt';
+            textLink.click();
+            URL.revokeObjectURL(textUrl);
         });
 
         // ========== CROSSFADE SETTINGS ==========
@@ -1152,18 +1293,17 @@
             a.click();
             URL.revokeObjectURL(url);
 
-            if (includeTimecodes) {
-                const timecodeText = timecodes.map(tc => {
-                    return `${formatTimecode(tc.time)} ${tc.name}`;
-                }).join('\n');
+            // Generate timecode text
+            const timecodeText = timecodes.map(tc => {
+                return `${formatTimecode(tc.time)} ${tc.name}`;
+            }).join('\n');
 
-                const textBlob = new Blob([timecodeText], { type: 'text/plain' });
-                const textUrl = URL.createObjectURL(textBlob);
-                const textLink = document.createElement('a');
-                textLink.href = textUrl;
-                textLink.download = 'mix_' + timestamp + '_timecodes.txt';
-                textLink.click();
-                URL.revokeObjectURL(textUrl);
+            currentTimecodeText = timecodeText;
+
+            // Show timecode modal if enabled
+            if (includeTimecodes) {
+                timecodeDisplay.textContent = timecodeText;
+                timecodeModal.classList.add('active');
             }
 
             updateProgress(100);
